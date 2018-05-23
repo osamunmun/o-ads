@@ -27,7 +27,25 @@ Ads.prototype.init = function(options) {
 	}
 
 	const targetingPromise = targetingApi ? this.api.init(targetingApi, this) : Promise.resolve();
-	const validateAdsTrafficPromise = validateAdsTrafficApi ? fetch(validateAdsTrafficApi).then(res => res.json()) : Promise.resolve();
+	
+	//moat ivt test
+	const moatScriptPromise = new Promise((resolve, reject) => {
+		const intervalId = setInterval((resolve) => {
+			if(window.moatPrebidApi) {
+				clearInterval(intervalId);
+				clearTimeout(timeoutId);
+				resolve({
+					mhv: window.moatPrebidApi.pageDataAvailable() ? 'n' : 'y'
+				});
+			}
+		}, 25);
+		const timeoutId = setTimeout(() => {
+			clearInterval(intervalId);
+			reject(new Error('Timeout while fetching moat invalid traffic script'));
+		}, 1000);
+	});
+	
+	const validateAdsTrafficPromise = options.moatAdsTraffic ? moatScriptPromise : Promise.resolve();
 	
 	/*
 		We only want to stop the oAds library from initializing if
@@ -36,9 +54,7 @@ Ads.prototype.init = function(options) {
 	 */
 	return Promise.all([validateAdsTrafficPromise, targetingPromise])
 		.then(([validateAdsTrafficResponse, targetingResponse]) => {
-			if (isRobot(validateAdsTrafficResponse)) {
-				this.config({"dfp_targeting": {"ivtmvt": "1"}});
-			}
+			this.config({"dfp_targeting": validateAdsTrafficResponse});
 			
 			const enableKrux = shouldEnableKrux(targetingResponse);
 			if (!enableKrux && localStorage.getItem('kxkuid')) {
@@ -114,7 +130,7 @@ Ads.prototype.debug = function (){
 };
 
 function isRobot(validateAdsTrafficResponse) {
-	return validateAdsTrafficResponse && validateAdsTrafficResponse.isRobot;
+	return validateAdsTrafficResponse && validateAdsTrafficResponse.mhv === 'n';
 }
 
 // targetingResponse is of the form [userTargetingResponse, pageTargetingResponse]
