@@ -34,24 +34,16 @@ Ads.prototype.init = function(options) {
 	}
 
 	const targetingApi = this.config().targetingApi;
-	const validateAdsTraffic = this.config().validateAdsTraffic;
 
-	// Don't need to fetch anything if no targeting or validateAdsTraffic configured.
-	if(!targetingApi && !validateAdsTraffic) {
+	// Don't need to fetch anything if no targeting is configured.
+	if(!targetingApi) {
 		return Promise.resolve(this.initLibrary());
 	}
 
 	const targetingPromise = targetingApi ? this.api.init(targetingApi, this) : Promise.resolve();
-	const validateAdsTrafficPromise = validateAdsTraffic ? getMoatIvtResponse() : Promise.resolve();
 
-	return Promise.all([validateAdsTrafficPromise, targetingPromise])
-		.then(([validateAdsTrafficResponse]) => {
-			if(validateAdsTrafficResponse) {
-				this.targeting.add(validateAdsTrafficResponse);
-			}
-
-			return this.initLibrary();
-		})
+	return targetingPromise
+		.then(_ => this.initLibrary())
 		// If anything fails, default to load ads without targeting
 		.catch(() => this.initLibrary());
 };
@@ -124,31 +116,6 @@ const initAll = function() {
 	})
 };
 
-
-
-
-/**
- * Wait for moat script to load and return a response based on their API
- * @returns {Promise}
- */
-function getMoatIvtResponse() {
-	return new Promise((resolve, reject) => {
-		const intervalId = setInterval(() => {
-			if(window.moatPrebidApi) {
-				clearInterval(intervalId);
-				clearTimeout(timeoutId);
-				resolve({
-					mhv: window.moatPrebidApi.pageDataAvailable() ? 'n' : 'y'
-				});
-			}
-		}, 50);
-		const timeoutId = setTimeout(() => {
-			clearInterval(intervalId);
-			reject(new Error('Timeout while fetching moat invalid traffic script'));
-		}, 1000);
-	});
-}
-
 function getConsents() {
 	// derive consent options from ft consent cookie
 	const re = /FTConsent=([^;]+)/;
@@ -166,10 +133,6 @@ function getConsents() {
 		programmatic: consentCookie.indexOf('programmaticadsOnsite:on') !== -1
 	};
 };
-
-function isRobot(validateAdsTrafficResponse) {
-	return validateAdsTrafficResponse && validateAdsTrafficResponse.isRobot;
-}
 
 function addDOMEventListener() {
 	document.addEventListener('o.DOMContentLoaded', initAll);
