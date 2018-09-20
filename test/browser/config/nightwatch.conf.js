@@ -12,7 +12,7 @@ const config = {
 	detailed_output: false,
 	test_workers: {
 		enabled: true,
-		workers: 2
+		workers: 5
 	},
 	common_capabilities: {
 		'browserstack.user': process.env.BROWSERSTACK_USER,

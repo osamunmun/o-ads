@@ -11,6 +11,7 @@ module.exports = {
 	concurrency: 4,
 
 	afterEach: (browser, done) => {
+		const sessionId = browser.sessionId;
 		const currentTest = browser.currentTest;
 		const passed = !currentTest.results.failed && !currentTest.results.errors;
 		const tags = [];
@@ -20,6 +21,7 @@ module.exports = {
 		if (process.env.NODE_ENV) {
 			tags.push(process.env.NODE_ENV);
 		}
+		const notifyOpts = { tags };
 		browser
 			.getLog('browser', logs => {
 				if (!passed) {
