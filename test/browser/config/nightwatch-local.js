@@ -18,7 +18,6 @@ if(process.env.CI) {
 			console.log("Finished running single nightwatch test.");
 		});
 	});
-	return;
 }
 
 require('dotenv').load();
@@ -38,7 +37,7 @@ try {
 	})
 
 	process.mainModule.filename = "./node_modules/.bin/nightwatch"
-	
+
 	// Code to start browserstack local before start of test
 	console.log("Connecting BrowserStackLocal tunnel...");
 	Nightwatch.bs_local = bs_local = new browserstack.Local();
